@@ -857,10 +857,10 @@ export const MOCK_EVENTS: OperationalEvent[] = [
       { type: 'abp', plate: 'VF 54321', qty: 1 }
     ],
     requirements: [
-      { role: 'DIR', qty: 1, assignedIds: Array(1).fill(null), entrustedGroups: Array(1).fill(null) },
-      { role: 'CP', qty: 2, assignedIds: Array(2).fill(null), entrustedGroups: Array(2).fill(null) },
-      { role: 'VIG', qty: 6, assignedIds: Array(6).fill(null), entrustedGroups: Array(6).fill(null) },
-      { role: 'ALTRO', qty: 0, assignedIds: [], entrustedGroups: [] }
+      { role: 'DIR', qty: 1, assignedIds: Array(1).fill(null), assignedByGroups: Array(1).fill(null), entrustedGroups: Array(1).fill(null) },
+      { role: 'CP', qty: 2, assignedIds: Array(2).fill(null), assignedByGroups: Array(2).fill(null), entrustedGroups: Array(2).fill(null) },
+      { role: 'VIG', qty: 6, assignedIds: Array(6).fill(null), assignedByGroups: Array(6).fill(null), entrustedGroups: Array(6).fill(null) },
+      { role: 'ALTRO', qty: 0, assignedIds: [], assignedByGroups: [], entrustedGroups: [] }
     ],
     approvedByAdmin: false,
     isOlympic: true

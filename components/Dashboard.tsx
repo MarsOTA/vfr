@@ -216,6 +216,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ events, setEvents, role, selectedDate, setSelectedDate, onEditEvent }) => {
+  const currentCompilatoreGroup = role.startsWith('COMPILATORE') ? role.split('_')[1] : null;
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [assignmentModal, setAssignmentModal] = useState<{ eventId: string, roleName: string, reqIndex: number, slotIndex: number } | null>(null);
   const [deleteRequest, setDeleteRequest] = useState<string[] | null>(null);
@@ -788,6 +789,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ events, setEvents, role, s
 
   const updateAssignment = (eventId: string, reqIndex: number, slotIndex: number, operatorId: string | null) => {
     if (dayApprovedState) return;
+    // Regola EXTRA: un compilatore NON può cancellare (operatorId=null) un operatore EXTRA
+    // se l'assegnazione è stata fatta da un gruppo diverso (cedente/precedente).
+    if (operatorId === null && currentCompilatoreGroup) {
+      const ev = events.find(e => e.id === eventId);
+      const req = ev?.requirements?.[reqIndex];
+      const currentAssignedId = req?.assignedIds?.[slotIndex] || null;
+      if (currentAssignedId) {
+        const op = MOCK_OPERATORS.find(o => o.id === currentAssignedId);
+        const assignedBy = req?.assignedByGroups?.[slotIndex] ?? null;
+        if (op?.group === 'EXTRA' && assignedBy && assignedBy !== currentCompilatoreGroup) {
+          alert('Non puoi rimuovere un operatore EXTRA assegnato da un gruppo precedente.');
+          return;
+        }
+        // Se manca il tracking (assignedByGroups), per sicurezza NON permettiamo la rimozione degli EXTRA.
+        if (op?.group === 'EXTRA' && !assignedBy) {
+          alert('Non puoi rimuovere un operatore EXTRA assegnato da un gruppo precedente.');
+          return;
+        }
+      }
+    }
     setEvents(prev => prev.map(ev => {
       if (ev.id !== eventId) return ev;
       const newReqs = [...ev.requirements];
@@ -796,6 +817,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ events, setEvents, role, s
       const newAssigned = [...targetReq.assignedIds];
       newAssigned[slotIndex] = operatorId;
       targetReq.assignedIds = newAssigned;
+
+      // Tracking assegnazioni (chi ha assegnato lo slot)
+      if (!targetReq.assignedByGroups) targetReq.assignedByGroups = Array(targetReq.qty).fill(null);
+      const newAssignedBy = [...targetReq.assignedByGroups];
+      newAssignedBy[slotIndex] = operatorId ? (currentCompilatoreGroup || null) : null;
+      targetReq.assignedByGroups = newAssignedBy;
       
       if (!targetReq.entrustedGroups) targetReq.entrustedGroups = Array(targetReq.qty).fill(null);
       const newEntries = [...targetReq.entrustedGroups];
@@ -837,6 +864,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ events, setEvents, role, s
       const newAssigned = [...targetReq.assignedIds];
       newAssigned[slotIndex] = null;
       targetReq.assignedIds = newAssigned;
+
+      // reset tracking (lo slot viene svuotato)
+      if (!targetReq.assignedByGroups) targetReq.assignedByGroups = Array(targetReq.qty).fill(null);
+      const newAssignedBy = [...targetReq.assignedByGroups];
+      newAssignedBy[slotIndex] = null;
+      targetReq.assignedByGroups = newAssignedBy;
       newReqs[reqIndex] = targetReq;
       return { ...ev, requirements: newReqs };
     }));
@@ -1220,7 +1253,10 @@ const EventCard: React.FC<{
                 <div className="flex-1 flex items-center px-2 py-1 bg-white min-w-0 gap-2">
                   {operator ? (
                     <div className="flex items-center w-full min-w-0 gap-1.5 overflow-visible">
-                       {isCompilatore && (operator.group === currentCompilatoreGroup || operator.group === 'EXTRA') && !dayApproved && (
+                       {isCompilatore && !dayApproved && (
+                         operator.group === currentCompilatoreGroup ||
+                         (operator.group === 'EXTRA' && req.assignedByGroups?.[unitIdx] === currentCompilatoreGroup)
+                       ) && (
                          <button 
                            onClick={(e) => { e.stopPropagation(); onRemoveAssignment(reqIdx, unitIdx); }} 
                            className="w-5 h-5 bg-red-50 text-[#720000] rounded-lg flex items-center justify-center hover:bg-[#A80505] hover:text-white transition-all no-print shrink-0 border border-red-200"

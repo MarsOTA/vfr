@@ -29,6 +29,12 @@ export interface PersonnelRequirement {
   qty: number;
 
   assignedIds: (string | null)[];                 // dimensione qty
+  /**
+   * Traccia chi ha effettuato l'assegnazione per singolo slot.
+   * Serve, tra le altre cose, per impedire la cancellazione degli operatori EXTRA
+   * da parte di un compilatore subentrante.
+   */
+  assignedByGroups?: (string | null)[];           // dimensione qty: gruppo compilatore che ha assegnato
   entrustedGroups?: (string | null)[];            // dimensione qty: 'A'|'B'|'C'|'D'|'VACANTE'|null
   entrustedByGroups?: (string | null)[];          // dimensione qty: chi ha passato (provenienza)
 
